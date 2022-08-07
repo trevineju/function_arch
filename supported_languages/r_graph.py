@@ -1,137 +1,153 @@
-from functionNode import functionNode
+import sys
+sys.path.insert(0, '/home/trevo/Desktop/Definitivo/GitHub/repos/arch_builder')
 
-class r_graph:
+from graph_nodes.functionNode import FunctionNode
+from supported_languages.stack import Stack
+
+class R_graph:
     graph_len = 0
-    data = []
-    function_Node_List = []
-    libraries_List = set()
-    packages_List = set()
-    url_List = set()
+    nodeList = []
     
-    ###
-    __name = ''
-    __params = ''
-    __body = ''
+    # file aux
+    __stack = Stack()
+    __file = ''
+    
+    # node aux
+    __node = FunctionNode()  
     __hasBody = False
-    __oneMoreLine = False
-    __findFunction = False
+    __hasSignature = False
+
 
 
     def __init__(self, df):
-        self.data = df
-        self.files_walk(df)
+        ''' (DataFrame) -> None
+        df: tabela de arquivos 
+        '''
+        self.build_nodes(df)
         self.build_graph()
 
 
-    def files_walk(self, df):
+
+    def build_nodes(self, df):
+        ''' (DataFrame) -> None
+        Alimenta lista de nós ao percorrer arquivos do df para encontrar funções (nós)
+        '''
+        # iterates through dir files
         for i in list(df.index):
-            self.file_reader(df.at[i,"path"], df.at[i,"filename"])
+            self.reinitializeNode()
+            self.reinitializeStack()
+            
+            self.__file = df.at[i,"path"] + df.at[i,"filename"]
+            
+            # iterates lines through file
+            file = open(self.__file, 'r')
+            lines = file.readlines()
+            
+            for line in lines:                
+                self.line_consumer(line) # procedures for line content
 
             
-    def file_reader(self, path, filename):
-        filepath = path + filename
-        file = open(filepath, 'r')
-        lines = file.readlines()
+    
+    def line_consumer(self, line):
+        self.__stack.addData(line)
         
-        for line in lines:
-            self.line_checker(line)
-            if self.__hasBody:
-                self.create_node(filepath)
-                self.reinitialize()
+        if "<-" in line: self.__stack.addAssign()
+        if "function" in line: self. __hasSignature = True
+        if "{" in line:
+            self.__stack.addOB()
+            if self.__hasSignature:
+                self.__node.name, self.__node.args = self.__stack.signatureExtract()
+                self. __hasSignature = False #finished collecting signature
+            self.__hasBody = True      # block begins
+        if "}" in line:
+            self.__stack.addCB()
+            if self.__hasBody: 
+                self.__node.body, self.__node.returns = self.__stack.bodyExtract()
+                self.addExtraInfo()
+                self.addNode()
                 
                 
-    def line_checker(self, line):         
-        if "http" in line or "www" in line: 
-            self.url_extract(line)
-        
-        elif "library" in line: 
-            self.library_extract(line)
-        
-        elif "package" in line: 
-            self.package_extract(line)
-        
-        elif "<-" in line:
-            self.__name = self.name_extract(line)            
-            self.find_funcSignature(line)
-        
-        elif self.__oneMoreLine or self.__findFunction:
-            self.find_funcSignature(line)            
-
-        
-    def find_funcSignature(self, line):
-        if self.__findFunction:
-            self.__body += line 
-            if "{" in line:
-                self.__params = self.parenthesis_extract(self.__body)
-            elif "}" in line:
-                self.__hasBody = True
-
-        elif "function" in line:            
-            self.__findFunction = True
-            self.__body += line 
-            if "{" in line: #if { in line, then ) is also
-                self.__params = self.parenthesis_extract(line)
             
-        else: # need one more line
-            if self.__oneMoreLine: #but u already had one more line
-                pass   # isnt a function       
-            else:
-                self.__oneMoreLine = True
-
-
-    def create_node(self, filepath):
+    def addNode(self):
+        self.__node.filepath = self.__file
+        self.nodeList.append(self.__node)
         self.graph_len += 1
-        self.function_Node_List.append(functionNode(self.graph_len, filepath, self.__name, self.__params, self.__body))        
         
-        
-    def reinitialize(self):
-            self.__name = ''
-            self.__params = ''
-            self.__body = ''
-            self.__hasBody = False
-            self.__oneMoreLine = False
-            self.__findFunction = False
-        
+        self.reinitializeNode()
+
+
+    def addExtraInfo(self): pass
+#        
+#
+#         
+#        if "http" in line or "www" in line: 
+#            self.url_extract(line)
+#        
+#        elif "library" in line: 
+#            self.library_extract(line)
+#        
+#        elif "package" in line: 
+#            self.package_extract(line)
+#        
+#        elif "<-" in line:
+#            self.__name = self.name_extract(line)            
+#            self.find_funcSignature(line)
+#        
+#        elif self.__oneMoreLine or self.__findFunction:
+#            self.find_funcSignature(line)            
+
     
     def build_graph(self):
-        for function in self.function_Node_List:
-            for function_compared in self.function_Node_List:
-                if function.name in function_compared.body:
-                    function.addCall(function_compared.name)
-                    function_compared.addCalled(function.name)  
+        for i in range(self.graph_len):
+            for j in range(self.graph_len):
+                if i == j: pass
+                else:
+                    if self.nodeList[i].name in self.nodeList[j].body:
+                        self.nodeList[j].addCall(self.nodeList[i].name)
+
                   
 
-    def url_extract(self,text):
-        # MELHORAR
-        self.url_List.add(text)
-        
-        
-    def library_extract(self, text):
-        lib = self.parenthesis_extract(text)
-        self.libraries_List.add(lib)
-
-
-    def package_extract(self, text):
-        pac = self.parenthesis_extract(text)
-        self.packages_List.add(pac)
-
-  
-    def name_extract(self, text):
-        return text[: text.find("<-")]
-
-
-    def parenthesis_extract(self, text):
-        return text[text.find("(")+1 : text.rfind(")")]
-    
-    
-    def baned(self, text):
-        ban = ["suppressMessages", "suppressWarnings", "error"]        
-        i = 0
-        while i < len(ban):
-            if ban[i] in text: return True
-            i+=1
-        return False
+#    def url_extract(self,text):
+#        # MELHORAR
+#        self.url_List.add(text)
+#        
+#        
+#    def library_extract(self, text):
+#        lib = self.parenthesis_extract(text)
+#        self.librariesList.add(lib)
+#
+#
+#    def package_extract(self, text):
+#        pac = self.parenthesis_extract(text)
+#        self.packages_List.add(pac)
+#
+#  
+#
+#    
+#    
+#    def baned(self, text):
+#        ban = ["suppressMessages", "suppressWarnings", "error"]        
+#        i = 0
+#        while i < len(ban):
+#            if ban[i] in text: return True
+#            i+=1
+#        return False
     
     
  
+    def reinitializeNode(self):
+        self.__node.filepath = ''
+        self.__node.name = ''
+        self.__node.args = []
+        self.__node.returns = []
+        self.__node.body = ''
+        self.__node.calls = set()
+        self.__node.calledby = set()  
+        self.__hasBody = False
+        self.__hasSignature = False
+        
     
+    
+    def reinitializeStack(self): 
+        self.__stack = Stack()
+        

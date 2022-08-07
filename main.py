@@ -2,7 +2,13 @@
 import os
 import pandas as pd
 
-from r_graph import r_graph
+# importing sys
+import sys
+ 
+# adding Folder_2/subfolder to the system path
+sys.path.insert(0, '/home/trevo/Desktop/Definitivo/GitHub/repos/arch_builder')
+
+from supported_languages.r_graph import r_graph
         
 def filesData(project_diretory):
     aux = [[],[],[]]
