@@ -15,4 +15,4 @@ class FunctionNode:
         if text != '': self.calls.add(text)
 
     def addCalled(self, text):
-        self.calledby.add(text)
+        if text != '': self.calledby.add(text)

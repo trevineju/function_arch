@@ -9,13 +9,13 @@ class R_graph:
     nodeList = []
     
     # file aux
-    __stack = Stack()
-    __file = ''
+    stack = Stack()
+    file = ''
     
     # node aux
-    __node = FunctionNode()  
-    __hasBody = False
-    __hasSignature = False
+    node = FunctionNode()  
+    hasBody = False
+    hasSignature = False
 
 
 
@@ -33,47 +33,51 @@ class R_graph:
         Alimenta lista de nós ao percorrer arquivos do df para encontrar funções (nós)
         '''
         # iterates through dir files
-        for i in list(df.index):
-            self.reinitializeNode()
-            self.reinitializeStack()
-            
-            self.__file = df.at[i,"path"] + df.at[i,"filename"]
+        for i in list(df.index):            
+            self.file = df.at[i,"path"] + df.at[i,"filename"]
             
             # iterates lines through file
-            file = open(self.__file, 'r')
+            file = open(self.file, 'r')
             lines = file.readlines()
             
             for line in lines:                
                 self.line_consumer(line) # procedures for line content
+            
+            self.reinitializeNode()
+            self.reinitializeStack()
 
             
     
     def line_consumer(self, line):
-        self.__stack.addData(line)
+        self.stack.addData(line)
         
-        if "<-" in line: self.__stack.addAssign()
-        if "function" in line: self. __hasSignature = True
+        if "<-" in line: 
+            self.stack.addAssign()
+        if "function" in line: 
+            functionPosition = len(self.stack.data)-1
+            assignPosition = self.stack.assignments[-1]
+            if functionPosition - assignPosition == 0 or functionPosition - assignPosition == 1:
+                self.hasSignature = True
         if "{" in line:
-            self.__stack.addOB()
-            if self.__hasSignature:
-                self.__node.name, self.__node.args = self.__stack.signatureExtract()
-                self. __hasSignature = False #finished collecting signature
-            self.__hasBody = True      # block begins
+            self.stack.addOB()
+            if self.hasSignature:
+                self.node.name, self.node.args = self.stack.signatureExtract()
+            self.hasBody = True      # block begins
         if "}" in line:
-            self.__stack.addCB()
-            if self.__hasBody: 
-                self.__node.body, self.__node.returns = self.__stack.bodyExtract()
+            self.stack.addCB()
+            if self.hasSignature and self.hasBody:
+                self.node.body = self.stack.bodyExtract()
                 self.addExtraInfo()
                 self.addNode()
+
                 
-                
-            
     def addNode(self):
-        self.__node.filepath = self.__file
-        self.nodeList.append(self.__node)
+        self.node.filepath = self.file
+        self.nodeList.append(self.node)
         self.graph_len += 1
-        
         self.reinitializeNode()
+     
+
 
 
     def addExtraInfo(self): pass
@@ -136,18 +140,13 @@ class R_graph:
     
  
     def reinitializeNode(self):
-        self.__node.filepath = ''
-        self.__node.name = ''
-        self.__node.args = []
-        self.__node.returns = []
-        self.__node.body = ''
-        self.__node.calls = set()
-        self.__node.calledby = set()  
-        self.__hasBody = False
-        self.__hasSignature = False
-        
+        self.node = FunctionNode()
+        self.hasBody = False
+        self.hasSignature = False       
     
     
     def reinitializeStack(self): 
-        self.__stack = Stack()
+        self.stack = Stack()
+        self.file = ''
+
         

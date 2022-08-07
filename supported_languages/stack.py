@@ -33,18 +33,18 @@ class Stack:
         
         
     def bodyExtract(self):
-        ''' (None) -> string, list
+        ''' (None) -> string
         '''
         if self.interation_needed("bodyExtract"):
-            for i in range(self.opening_brackets[-1], self.closening_brackets[-1]):
-                self.aux_text = self.data[i]
+            for i in range(self.opening_brackets[-1], self.closening_brackets[-1]+1):
+                self.aux_text += self.data[i]
         else: 
             self.aux_text = self.data[-1]
         
         body = self.aux_text
-        returns = self.returnsExtract()
+        self.aux_text = ''  #clears aux text
         
-        return body, returns
+        return body
     
     def returnsExtract(self):
         '''
@@ -66,11 +66,11 @@ class Stack:
         '''(None) -> string, list
         '''
         if self.interation_needed("signatureExtract"):
-            for i in range(self.assignments[-1], self.opening_brackets[-1]):
-                self.aux_text = self.data[i]
+            for i in range(self.assignments[-1], self.opening_brackets[-1]+1):
+                self.aux_text += self.data[i]
         else: 
             self.aux_text = self.data[-1]
-            
+ 
         name = self.name_extract(self.aux_text)
         args = self.string_split(self.parenthesis_extract(self.aux_text))
         

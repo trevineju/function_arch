@@ -236,10 +236,11 @@ def acessa_listaNos(graph):
 directory = "/home/trevo/Desktop/Definitivo/GitHub/repos/-reforma-perfil-parlamentar-dados"
 data = filesData(directory)
 data = data[data['extension'] =='R']
-data = data.iloc[0:3,]
+data = data.iloc[0:30,]
 
 a_tamanho, a_nodeList, a_filepathList, a_nameList, a_argsList, a_returnsList, a_bodyList, a_callsList, a_calledList = testa_construcao_grafo(data)
 
+print("fim!")
 
 
 
